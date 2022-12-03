@@ -3,6 +3,7 @@ import java.util.AbstractSet;
 
 // Implementation to represent an OthelloPlayer with MiniMax algorithm.
 public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
+	private final double Percentile = 1.5;
     private int depthLimit;
     private int shallowSearchLimit;
     private int generatedNodes;
@@ -40,7 +41,7 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
             if (square!=null) {
                 generatedNodes++;
                 GameState gs = currentState.applyMove(square);
-                int value = minValue(1, gs, Integer.MIN_VALUE, Integer.MAX_VALUE);
+                int value = minValue(1, shallowSearchLimit, gs, Integer.MIN_VALUE, Integer.MAX_VALUE);
                 if (evaluation < value) {
                     evaluation = value;
                     move = square;
@@ -54,7 +55,7 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
         }
     }
 
-    public int minValue(int depth, GameState state, int alpha, int beta) {
+    public int minValue(int depth, int searchLimit, GameState state, int alpha, int beta) {
         if (depth>=depthLimit) {
             staticEvaluations++;
             return staticEvaluator(state);
@@ -69,17 +70,17 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
                 generatedNodes++;
                 GameState gs = state.applyMove(square);
                 // Must be defined for PB Cut
-                int bound = 4;
-                min = Math.min(min, maxValue(depth+1, gs, alpha, beta));
+                int bound = (int) (Percentile + beta / alpha);
+                min = Math.min(min, maxValue(depth+1, searchLimit, gs, alpha, beta));
                 // Must be defined for PB Cut
-                if (min<=beta) return min;
+                if (minValue(depth, searchLimit, state, bound, bound + 1) >= bound) return beta;
                 beta = Math.min(beta, min);
             }
         }
         return min;
     }
     
-    public int maxValue(int depth, GameState state, int alpha, int beta) {
+    public int maxValue(int depth, int searchLimit, GameState state, int alpha, int beta) {
         if (depth>=depthLimit) {
             staticEvaluations++;
             return staticEvaluator(state);
@@ -92,11 +93,11 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
             if (square!=null) {
                 generatedNodes++;
                 GameState gs = state.applyMove(square);
-                max = Math.max(max, minValue(depth+1, gs, alpha, beta));
+                max = Math.max(max, minValue(depth+1, searchLimit, gs, alpha, beta));
                 // Must be defined for PB Cut
-                int bound = 4;
+                int bound = (int) (Percentile + alpha / beta);
                 // Must be changed for PB Cut
-                if (max>=beta) return max;
+                if (maxValue(depth, searchLimit, state, bound, bound + 1) <= bound) return alpha;
                 alpha = Math.max(alpha, max);
             }
         }
