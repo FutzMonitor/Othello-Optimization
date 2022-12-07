@@ -1,5 +1,7 @@
 import java.util.Date;
-import java.util.AbstractSet;
+// import java.util.AbstractSet;
+import java.io.FileWriter;
+import java.io.IOException;
 
 // Implementation to represent an OthelloPlayer with MiniMax algorithm.
 public class ABOthelloPlayer extends OthelloPlayer implements MiniMax {
@@ -7,26 +9,38 @@ public class ABOthelloPlayer extends OthelloPlayer implements MiniMax {
     private int generatedNodes;
     private int staticEvaluations;
     private int totalNodes;
+    private int shallowDepthLimit;
+    private Pair dataPair;
 
-    private static final int DEFAULT_DEPTH = 5;
+    private static final int DEFAULT_DEPTH = 8;
 
     public ABOthelloPlayer(String name) {
         super(name);
         depthLimit = DEFAULT_DEPTH;
+        shallowDepthLimit = depthLimit / 2;
         generatedNodes = 0;
         staticEvaluations = 0;
         totalNodes = 0;
+        dataPair = new Pair(0,0);
     }
 
     public ABOthelloPlayer(String name, int depthLimit) {
         super(name);
         this.depthLimit = depthLimit;
+        shallowDepthLimit = depthLimit / 2;
         generatedNodes = 0;
         staticEvaluations = 0;
         totalNodes = 0;
+        dataPair = new Pair(0,0);
     }
 
     public Square getMove(GameState currentState, Date deadline) {
+        // ADDING TO TRY TO COLLECT EVALUATION PAIRS FOR PROBCUT REGRESSION MODELS
+        int myScore = currentState.getScore(currentState.getCurrentPlayer());
+        int oppScore = currentState.getScore(currentState.getOpponent(currentState.getCurrentPlayer()));
+        int pieces = myScore + oppScore;
+        // END
+
         Square move = null;
         int evaluation = Integer.MIN_VALUE;
     
@@ -46,6 +60,22 @@ public class ABOthelloPlayer extends OthelloPlayer implements MiniMax {
         if (move==null) {
             return validSquares[0];
         } else {
+
+            // ADDING FOR PROBCUT DATA COLLECTION
+            dataPair.set_b(evaluation);
+            try {
+                String file_name = "data-collection/d-" + String.valueOf(pieces) + ".txt";
+                FileWriter write_data = new FileWriter(file_name, true);
+                write_data.write(dataPair.print());
+                write_data.write('\n');
+                write_data.close();
+                System.out.println("Successfully wrote to the data file.");
+            } catch (IOException e) {
+                System.out.println("An error occurred writing to the data file.");
+                e.printStackTrace();
+            }
+            // END
+
             return move;
         }
     }
@@ -55,6 +85,13 @@ public class ABOthelloPlayer extends OthelloPlayer implements MiniMax {
             staticEvaluations++;
             return staticEvaluator(state);
         }
+
+        // ADDING FOR PROBCUT DATA COLLECTION
+        if(depth == shallowDepthLimit) {
+            dataPair.set_a(staticEvaluator(state));
+        }
+        // END
+
         int min = Integer.MAX_VALUE;
 
         Square validSquares[] = state.getValidMoves().toArray(new Square[0]);
@@ -76,6 +113,13 @@ public class ABOthelloPlayer extends OthelloPlayer implements MiniMax {
             staticEvaluations++;
             return staticEvaluator(state);
         }
+
+        // ADDING FOR PROBCUT DATA COLLECTION
+        if(depth == shallowDepthLimit) {
+            dataPair.set_a(staticEvaluator(state));
+        }
+        // END
+
         int max = Integer.MIN_VALUE;
 
         Square validSquares[] = state.getValidMoves().toArray(new Square[0]);
