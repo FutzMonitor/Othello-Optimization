@@ -1,9 +1,14 @@
 import java.util.Date;
-import java.util.AbstractSet;
+import weka.classifiers.Evaluation;
+import weka.classifiers.Classifier;
+import weka.core.Instance;
+import weka.core.Instances;
+import weka.core.converters.ArffLoader; 
 
 // Implementation to represent an OthelloPlayer with MiniMax algorithm.
 public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
 	private final double Percentile = 1.5;
+	private final int sigma = 1;
     private int depthLimit;
     private int shallowSearchLimit;
     private int generatedNodes;
@@ -15,7 +20,7 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
     public PBOthelloPlayer(String name) {
         super(name);
         depthLimit = DEFAULT_DEPTH;
-        shallowSearchLimit = 3;
+        shallowSearchLimit = 2;
         generatedNodes = 0;
         staticEvaluations = 0;
         totalNodes = 0;
@@ -70,7 +75,7 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
                 generatedNodes++;
                 GameState gs = state.applyMove(square);
                 // Must be defined for PB Cut
-                int bound = (int) (Percentile + beta / alpha);
+                int bound = (int) (Percentile  * sigma + beta / alpha);
                 min = Math.min(min, maxValue(depth+1, searchLimit, gs, alpha, beta));
                 // Must be defined for PB Cut
                 if (minValue(depth, searchLimit, state, bound, bound + 1) >= bound) return beta;
@@ -93,11 +98,11 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
             if (square!=null) {
                 generatedNodes++;
                 GameState gs = state.applyMove(square);
+                int bound = (int) (Percentile * sigma + beta / alpha);
                 max = Math.max(max, minValue(depth+1, searchLimit, gs, alpha, beta));
+                if (minValue(depth, searchLimit, state, bound, bound + 1) >= bound) return beta;
                 // Must be defined for PB Cut
-                int bound = (int) (Percentile + alpha / beta);
                 // Must be changed for PB Cut
-                if (maxValue(depth, searchLimit, state, bound, bound + 1) <= bound) return alpha;
                 alpha = Math.max(alpha, max);
             }
         }
