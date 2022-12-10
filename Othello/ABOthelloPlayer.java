@@ -12,7 +12,7 @@ public class ABOthelloPlayer extends OthelloPlayer implements MiniMax {
     private int shallowDepthLimit;
     private Pair dataPair;
 
-    private static final int DEFAULT_DEPTH = 8;
+    private static final int DEFAULT_DEPTH = 10;
 
     public ABOthelloPlayer(String name) {
         super(name);
@@ -62,17 +62,21 @@ public class ABOthelloPlayer extends OthelloPlayer implements MiniMax {
         } else {
 
             // ADDING FOR PROBCUT DATA COLLECTION
-            dataPair.set_b(evaluation);
-            try {
-                String file_name = "data-collection/d-" + String.valueOf(pieces) + ".txt";
-                FileWriter write_data = new FileWriter(file_name, true);
-                write_data.write(dataPair.print());
-                write_data.write('\n');
-                write_data.close();
-                System.out.println("Successfully wrote to the data file.");
-            } catch (IOException e) {
-                System.out.println("An error occurred writing to the data file.");
-                e.printStackTrace();
+            if(evaluation != 2.147483647E9) {
+                dataPair.set_b(evaluation);
+                try {
+                    String file_name = "new-data/d-" + String.valueOf(pieces) + ".txt";
+                    FileWriter write_data = new FileWriter(file_name, true);
+                    write_data.write(dataPair.print());
+                    write_data.write('\n');
+                    write_data.close();
+                    System.out.println("Successfully wrote to the data file.");
+                } catch (IOException e) {
+                    System.out.println("An error occurred writing to the data file.");
+                    e.printStackTrace();
+                }
+                dataPair.set_a(1000);
+                dataPair.set_b(1000);
             }
             // END
 
