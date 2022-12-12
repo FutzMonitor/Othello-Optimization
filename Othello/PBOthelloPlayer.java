@@ -1,9 +1,4 @@
 import java.util.Date;
-import weka.classifiers.Evaluation;
-import weka.classifiers.Classifier;
-import weka.core.Instance;
-import weka.core.Instances;
-import weka.core.converters.ArffLoader; 
 
 // Implementation to represent an OthelloPlayer with MiniMax algorithm.
 public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
@@ -20,31 +15,32 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
     public PBOthelloPlayer(String name) {
         super(name);
         depthLimit = DEFAULT_DEPTH;
-        shallowDepthLimit = 4;
+        shallowSearchLimit = 4;
         generatedNodes = 0;
         staticEvaluations = 0;
         totalNodes = 0;
-        dataPair = new Pair(0,0);
+        // dataPair = new Pair(0,0);
     }
 
     public PBOthelloPlayer(String name, int depthLimit, int shallowDepthLimit) {
         super(name);
         this.depthLimit = depthLimit;
-        this.shallowDepthLimit = shallowDepthLimit;
+        this.shallowSearchLimit = shallowDepthLimit;
         generatedNodes = 0;
         staticEvaluations = 0;
         totalNodes = 0;
-        dataPair = new Pair(0,0);
+        // dataPair = new Pair(0,0);
     }
 
+
     public Square getMove(GameState currentState, Date deadline) {
+
         // ADDING TO TRY TO COLLECT EVALUATION PAIRS FOR PROBCUT REGRESSION MODELS
         int myScore = currentState.getScore(currentState.getCurrentPlayer());
         int oppScore = currentState.getScore(currentState.getOpponent(currentState.getCurrentPlayer()));
         int pieces = myScore + oppScore;
         // END
 
-    public Square getMove(GameState currentState, Date deadline) {
         Square move = null;
         int evaluation = Integer.MIN_VALUE;
     
