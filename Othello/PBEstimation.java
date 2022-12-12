@@ -16,16 +16,17 @@ public class PBEstimation {
                 lnr[i][j] = -1;
             }
         }
+
         try {
             File file = new File("linear-regression-results.csv");
             Scanner reader = new Scanner(file);
             while (reader.hasNextLine()) {
-              String data = reader.nextLine();
-              int index = Integer.parseInt(data.split(",")[0]);
-              int numObs = Integer.parseInt(data.split(",")[1]);
-              double intercept = Double.parseDouble(data.split(",")[2]);
-              double coefficient = Double.parseDouble(data.split(",")[3]);
-              double rerror = Double.parseDouble(data.split(",")[4]);
+              String[] data = reader.nextLine().split(",");
+              int index = Integer.parseInt(data[0].trim());
+              int numObs = Integer.parseInt(data[1].trim());
+              double intercept = Double.parseDouble(data[2]);
+              double coefficient = Double.parseDouble(data[3]);
+              double rerror = Double.parseDouble(data[4]);
               lnr[index][0] = numObs;
               lnr[index][1] = intercept;
               lnr[index][2] = coefficient;
