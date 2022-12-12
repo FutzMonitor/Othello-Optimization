@@ -15,26 +15,34 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
     private int staticEvaluations;
     private int totalNodes;
 
-    private static final int DEFAULT_DEPTH = 5;
+    private static final int DEFAULT_DEPTH = 8;
 
     public PBOthelloPlayer(String name) {
         super(name);
         depthLimit = DEFAULT_DEPTH;
-        shallowSearchLimit = 2;
+        shallowDepthLimit = 4;
         generatedNodes = 0;
         staticEvaluations = 0;
         totalNodes = 0;
-        
+        dataPair = new Pair(0,0);
     }
 
-    public PBOthelloPlayer(String name, int depthLimit, int shallowSearchLimit) {
+    public PBOthelloPlayer(String name, int depthLimit, int shallowDepthLimit) {
         super(name);
         this.depthLimit = depthLimit;
-        this.shallowSearchLimit = shallowSearchLimit;
+        this.shallowDepthLimit = shallowDepthLimit;
         generatedNodes = 0;
         staticEvaluations = 0;
         totalNodes = 0;
+        dataPair = new Pair(0,0);
     }
+
+    public Square getMove(GameState currentState, Date deadline) {
+        // ADDING TO TRY TO COLLECT EVALUATION PAIRS FOR PROBCUT REGRESSION MODELS
+        int myScore = currentState.getScore(currentState.getCurrentPlayer());
+        int oppScore = currentState.getScore(currentState.getOpponent(currentState.getCurrentPlayer()));
+        int pieces = myScore + oppScore;
+        // END
 
     public Square getMove(GameState currentState, Date deadline) {
         Square move = null;
@@ -56,16 +64,39 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
         if (move==null) {
             return validSquares[0];
         } else {
+
+            // ADDING FOR PROBCUT DATA COLLECTION
+            // dataPair.set_b(evaluation);
+            // try {
+            //    String file_name = "data-collection/d-" + String.valueOf(pieces) + ".txt";
+            //    FileWriter write_data = new FileWriter(file_name, true);
+            //    write_data.write(dataPair.print());
+            //    write_data.write('\n');
+            //    write_data.close();
+            //    System.out.println("Successfully wrote to the data file.");
+            // } catch (IOException e) {
+            //    System.out.println("An error occurred writing to the data file.");
+            //    e.printStackTrace();
+            // }
+            // END
+            
             return move;
         }
     }
+
 
     public int minValue(int depth, int searchLimit, GameState state, int alpha, int beta) {
         if (depth>=depthLimit) {
             staticEvaluations++;
             return staticEvaluator(state);
         }
-        
+
+        // ADDING FOR PROBCUT DATA COLLECTION
+        // if(depth == shallowDepthLimit) {
+        //    dataPair.set_a(staticEvaluator(state));
+        //}
+        // END
+
         int min = Integer.MAX_VALUE;
 
         Square validSquares[] = state.getValidMoves().toArray(new Square[0]);
@@ -74,6 +105,7 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
             if (square!=null) {
                 generatedNodes++;
                 GameState gs = state.applyMove(square);
+
                 // Must be defined for PB Cut
                 int bound = (int) (Percentile  * sigma + beta / alpha);
                 min = Math.min(min, maxValue(depth+1, searchLimit, gs, alpha, beta));
@@ -85,11 +117,19 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
         return min;
     }
     
+
     public int maxValue(int depth, int searchLimit, GameState state, int alpha, int beta) {
         if (depth>=depthLimit) {
             staticEvaluations++;
             return staticEvaluator(state);
         }
+
+        // ADDING FOR PROBCUT DATA COLLECTION
+        // if(depth == shallowDepthLimit) {
+        //     dataPair.set_a(staticEvaluator(state));
+        // }
+        // END
+
         int max = Integer.MIN_VALUE;
 
         Square validSquares[] = state.getValidMoves().toArray(new Square[0]);
@@ -98,6 +138,7 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
             if (square!=null) {
                 generatedNodes++;
                 GameState gs = state.applyMove(square);
+
                 int bound = (int) (Percentile * sigma + beta / alpha);
                 max = Math.max(max, minValue(depth+1, searchLimit, gs, alpha, beta));
                 if (minValue(depth, searchLimit, state, bound, bound + 1) >= bound) return beta;
@@ -133,4 +174,3 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
         return generatedNodes/(generatedNodes-staticEvaluations);
     }
 }
-
