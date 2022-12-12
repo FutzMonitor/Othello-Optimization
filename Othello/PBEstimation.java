@@ -7,7 +7,7 @@ public class PBEstimation {
     double[][] lnr;
 
     public PBEstimation() {
-        lnr = new double[57][4];
+        lnr = new double[65][4];
 
         // ugly code, but it works
         double[] a5 = {1998,9.00526,-0.001317,6.18E-07};
@@ -115,8 +115,14 @@ public class PBEstimation {
         double[] a56 = {1377,46.25399,0.0367,0.00161};
         lnr[56] = a56;
 
+        // number of pieces without linear regression have all values set to -1
         for(int i=0; i<=4; i++) {
             for(int j=0; j<4; j++) {
+                lnr[i][j] = -1;
+            }
+        }
+        for(int i=58; i<65; i++) {
+            for(int j=0; i<4; j++) {
                 lnr[i][j] = -1;
             }
         }
