@@ -1,10 +1,10 @@
 // class to store estimation models and predict v from v'
 public class PBEstimation {
 
-    // 2d array storing information for all linear regressions
+    //  2d array storing information for all linear regressions
     //  first index corresponds to number of pieces on board
     //  second index correpsonds to different info for that linear regression
-    double[][] lnr;
+    protected double[][] lnr;
 
     public PBEstimation() {
         lnr = new double[65][4];
@@ -129,34 +129,34 @@ public class PBEstimation {
     }
 
     // return number of observations in linear regression for d pieces on board or -1 if regression doesnt exist
-    public double getNumObs(int d) {
+    protected double getNumObs(int d) {
         return lnr[d][0];
     }
 
     // return intercept of linear regression for d pieces on board or -1 if regression doesnt exist
-    public double getIntercept(int d) {
+    protected double getIntercept(int d) {
         return lnr[d][1];
     }
 
     // return v' coefficient in linear regression for d pieces on board or -1 if regression doesnt exist
-    public double getCoeff(int d) {
+    protected double getCoeff(int d) {
         return lnr[d][2];
     }
 
     // return r squared error of linear regression for d pieces on board or -1 if regression doesn't exist
-    public double getR2Error(int d) {
+    protected double getR2Error(int d) {
         return lnr[d][3];
     }
 
     // return estimate of v for v' at d pieces on board, or -1 if linear regression doesn't exist
-    public double estimateV(int d, int v_prime) {
+    protected double estimateV(int d, int v_prime) {
         if(lnr[d][1] == -1) {
             return -1;
         }
         return getIntercept(d) + getCoeff(d) * v_prime;
     }
 
-    public static void main(String[] args) {
+    protected static void main(String[] args) {
         PBEstimation pb = new PBEstimation();
         // System.out.println(pb.getNumObs(7));
         // System.out.println(pb.getIntercept(7));

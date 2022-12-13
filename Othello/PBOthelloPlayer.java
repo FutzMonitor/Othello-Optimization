@@ -4,6 +4,7 @@ import java.util.Date;
 public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
 	private final double Percentile = 1.5;
 	private final int sigma = 1;
+	private PBEstimation model;
     private int depthLimit;
     private int shallowSearchLimit;
     private int generatedNodes;
@@ -19,6 +20,8 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
         generatedNodes = 0;
         staticEvaluations = 0;
         totalNodes = 0;
+        model = new PBEstimation();
+        
         // dataPair = new Pair(0,0);
     }
 
@@ -29,6 +32,7 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
         generatedNodes = 0;
         staticEvaluations = 0;
         totalNodes = 0;
+        model = new PBEstimation();
         // dataPair = new Pair(0,0);
     }
 
@@ -86,6 +90,13 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
             staticEvaluations++;
             return staticEvaluator(state);
         }
+        
+        int myPieces = state.getScore(state.getCurrentPlayer());
+        int oppPieces = state.getScore(state.getOpponent(state.getCurrentPlayer()));
+        int totalPieces = myPieces + oppPieces;
+        if(model.estimateV(totalPieces, 0) >= beta) {
+        	// implement cut-off
+        }
 
         // ADDING FOR PROBCUT DATA COLLECTION
         // if(depth == shallowDepthLimit) {
@@ -103,7 +114,8 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
                 GameState gs = state.applyMove(square);
 
                 // Must be defined for PB Cut
-                int bound = (int) (Percentile  * sigma + beta / alpha);
+                double a = model.getIntercept(totalPieces), b = model.getCoeff(totalPieces);
+                int bound = (int) (Percentile * sigma + beta - b / a);
                 min = Math.min(min, maxValue(depth+1, searchLimit, gs, alpha, beta));
                 // Must be defined for PB Cut
                 if (minValue(depth, searchLimit, state, bound, bound + 1) >= bound) return beta;
@@ -119,7 +131,13 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
             staticEvaluations++;
             return staticEvaluator(state);
         }
-
+        int myPieces = state.getScore(state.getCurrentPlayer());
+        int oppPieces = state.getScore(state.getOpponent(state.getCurrentPlayer()));
+        int totalPieces = myPieces + oppPieces;
+        if(model.estimateV(totalPieces, 0) <= alpha) {
+        	// implement cut-off
+        }
+        
         // ADDING FOR PROBCUT DATA COLLECTION
         // if(depth == shallowDepthLimit) {
         //     dataPair.set_a(staticEvaluator(state));
@@ -134,12 +152,12 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
             if (square!=null) {
                 generatedNodes++;
                 GameState gs = state.applyMove(square);
-
-                int bound = (int) (Percentile * sigma + beta / alpha);
+                
+                double a = model.getIntercept(totalPieces), b = model.getCoeff(totalPieces);
+                int bound = (int) ((-1 * Percentile) * sigma + alpha - b / a);
                 max = Math.max(max, minValue(depth+1, searchLimit, gs, alpha, beta));
                 if (minValue(depth, searchLimit, state, bound, bound + 1) >= bound) return beta;
                 // Must be defined for PB Cut
-                // Must be changed for PB Cut
                 alpha = Math.max(alpha, max);
             }
         }
