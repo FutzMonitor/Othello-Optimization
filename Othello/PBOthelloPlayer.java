@@ -2,6 +2,7 @@ import java.util.Date;
 
 // Implementation to represent an OthelloPlayer with MiniMax algorithm.
 public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
+	private final double rCheck = .25;
 	private final double Percentile = 1.5;
 	private final int sigma = 1;
 	private PBEstimation model;
@@ -85,8 +86,8 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
     }
 
 
-    public int minValue(int depth, int searchLimit, GameState state, int alpha, int beta) {
-        if (depth>=depthLimit) {
+    public int minValue(int depth, GameState state, int alpha, int beta) {
+        if (depth >= depthLimit) {
             staticEvaluations++;
             return staticEvaluator(state);
         }
@@ -94,9 +95,15 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
         int myPieces = state.getScore(state.getCurrentPlayer());
         int oppPieces = state.getScore(state.getOpponent(state.getCurrentPlayer()));
         int totalPieces = myPieces + oppPieces;
-        if(model.estimateV(totalPieces, 0) >= beta) {
-        	// implement cut-off
+        
+        if(depth == shallowSearchLimit) {
+        	if(model.getR2Error(totalPieces) >= rCheck) {
+                if(model.estimateV(totalPieces, staticEvaluator(state)) >= beta) {
+                	return beta;
+                }        		
+        	}
         }
+
 
         // ADDING FOR PROBCUT DATA COLLECTION
         // if(depth == shallowDepthLimit) {
@@ -126,7 +133,7 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
     }
     
 
-    public int maxValue(int depth, int searchLimit, GameState state, int alpha, int beta) {
+    public int maxValue(int depth, GameState state, int alpha, int beta) {
         if (depth>=depthLimit) {
             staticEvaluations++;
             return staticEvaluator(state);
@@ -134,8 +141,13 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
         int myPieces = state.getScore(state.getCurrentPlayer());
         int oppPieces = state.getScore(state.getOpponent(state.getCurrentPlayer()));
         int totalPieces = myPieces + oppPieces;
-        if(model.estimateV(totalPieces, 0) <= alpha) {
-        	// implement cut-off
+
+        if(depth == shallowSearchLimit) {
+        	if(model.getR2Error(totalPieces) >= rCheck) {
+                if(model.estimateV(totalPieces, staticEvaluator(state)) <= alpha) {
+                	return alpha;
+                }        		
+        	}
         }
         
         // ADDING FOR PROBCUT DATA COLLECTION
