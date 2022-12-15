@@ -1,14 +1,9 @@
 import java.util.Date;
-import weka.classifiers.Evaluation;
-import weka.classifiers.Classifier;
-import weka.core.Instance;
-import weka.core.Instances;
-import weka.core.converters.ArffLoader; 
 
 // Implementation to represent an OthelloPlayer with MiniMax algorithm.
 public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
-	private final double Percentile = 1.5;
-	private final int sigma = 1;
+	private final double rCheck = .30;
+	private PBEstimation model;
     private int depthLimit;
     private int shallowSearchLimit;
     private int generatedNodes;
@@ -20,31 +15,35 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
     public PBOthelloPlayer(String name) {
         super(name);
         depthLimit = DEFAULT_DEPTH;
-        shallowDepthLimit = 4;
+        shallowSearchLimit = 4;
         generatedNodes = 0;
         staticEvaluations = 0;
         totalNodes = 0;
-        dataPair = new Pair(0,0);
+        model = new PBEstimation();
+        
+        // dataPair = new Pair(0,0);
     }
 
     public PBOthelloPlayer(String name, int depthLimit, int shallowDepthLimit) {
         super(name);
         this.depthLimit = depthLimit;
-        this.shallowDepthLimit = shallowDepthLimit;
+        this.shallowSearchLimit = shallowDepthLimit;
         generatedNodes = 0;
         staticEvaluations = 0;
         totalNodes = 0;
-        dataPair = new Pair(0,0);
+        model = new PBEstimation();
+        // dataPair = new Pair(0,0);
     }
 
-    public Square getMove(GameState currentState, Date deadline) {
-        // ADDING TO TRY TO COLLECT EVALUATION PAIRS FOR PROBCUT REGRESSION MODELS
-        int myScore = currentState.getScore(currentState.getCurrentPlayer());
-        int oppScore = currentState.getScore(currentState.getOpponent(currentState.getCurrentPlayer()));
-        int pieces = myScore + oppScore;
-        // END
 
     public Square getMove(GameState currentState, Date deadline) {
+
+        // ADDING TO TRY TO COLLECT EVALUATION PAIRS FOR PROBCUT REGRESSION MODELS
+        // int myScore = currentState.getScore(currentState.getCurrentPlayer());
+        // int oppScore = currentState.getScore(currentState.getOpponent(currentState.getCurrentPlayer()));
+        // int pieces = myScore + oppScore;
+        // END
+
         Square move = null;
         int evaluation = Integer.MIN_VALUE;
     
@@ -54,7 +53,7 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
             if (square!=null) {
                 generatedNodes++;
                 GameState gs = currentState.applyMove(square);
-                int value = minValue(1, shallowSearchLimit, gs, Integer.MIN_VALUE, Integer.MAX_VALUE);
+                int value = minValue(1, gs, Integer.MIN_VALUE, Integer.MAX_VALUE);
                 if (evaluation < value) {
                     evaluation = value;
                     move = square;
@@ -85,11 +84,24 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
     }
 
 
-    public int minValue(int depth, int searchLimit, GameState state, int alpha, int beta) {
-        if (depth>=depthLimit) {
+    public int minValue(int depth, GameState state, int alpha, int beta) {
+        if (depth >= depthLimit) {
             staticEvaluations++;
             return staticEvaluator(state);
         }
+        
+        int myPieces = state.getScore(state.getCurrentPlayer());
+        int oppPieces = state.getScore(state.getOpponent(state.getCurrentPlayer()));
+        int totalPieces = myPieces + oppPieces;
+        
+        if(depth == shallowSearchLimit) {
+        	if(model.getR2Error(totalPieces) >= rCheck) {
+                if(model.estimateV(totalPieces, staticEvaluator(state)) >= beta) {
+                	return beta;
+                }        		
+        	}
+        }
+
 
         // ADDING FOR PROBCUT DATA COLLECTION
         // if(depth == shallowDepthLimit) {
@@ -101,16 +113,26 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
 
         Square validSquares[] = state.getValidMoves().toArray(new Square[0]);
         totalNodes+=validSquares.length;
+        // for (Square square:validSquares) {
+        //     if (square!=null) {
+        //         generatedNodes++;
+        //         GameState gs = state.applyMove(square);
+
+        //         // Must be defined for PB Cut
+        //         double a = model.getIntercept(totalPieces), b = model.getCoeff(totalPieces);
+        //         int bound = (int) (Percentile * sigma + beta - b / a);
+        //         min = Math.min(min, maxValue(depth+1, gs, alpha, beta));
+        //         // Must be defined for PB Cut
+        //         if (minValue(depth+1, state, bound, bound + 1) >= bound) return beta;
+        //         beta = Math.min(beta, min);
+        //     }
+        // }
         for (Square square:validSquares) {
             if (square!=null) {
                 generatedNodes++;
                 GameState gs = state.applyMove(square);
-
-                // Must be defined for PB Cut
-                int bound = (int) (Percentile  * sigma + beta / alpha);
-                min = Math.min(min, maxValue(depth+1, searchLimit, gs, alpha, beta));
-                // Must be defined for PB Cut
-                if (minValue(depth, searchLimit, state, bound, bound + 1) >= bound) return beta;
+                min = Math.min(min, maxValue(depth+1, gs, alpha, beta));
+                if (min<=beta) return min;
                 beta = Math.min(beta, min);
             }
         }
@@ -118,12 +140,23 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
     }
     
 
-    public int maxValue(int depth, int searchLimit, GameState state, int alpha, int beta) {
+    public int maxValue(int depth, GameState state, int alpha, int beta) {
         if (depth>=depthLimit) {
             staticEvaluations++;
             return staticEvaluator(state);
         }
+        int myPieces = state.getScore(state.getCurrentPlayer());
+        int oppPieces = state.getScore(state.getOpponent(state.getCurrentPlayer()));
+        int totalPieces = myPieces + oppPieces;
 
+        if(depth == shallowSearchLimit) {
+        	if(model.getR2Error(totalPieces) >= rCheck) {
+                if(model.estimateV(totalPieces, staticEvaluator(state)) <= alpha) {
+                	return alpha;
+                }        		
+        	}
+        }
+        
         // ADDING FOR PROBCUT DATA COLLECTION
         // if(depth == shallowDepthLimit) {
         //     dataPair.set_a(staticEvaluator(state));
@@ -134,16 +167,25 @@ public class PBOthelloPlayer extends OthelloPlayer implements MiniMax {
 
         Square validSquares[] = state.getValidMoves().toArray(new Square[0]);
         totalNodes+=validSquares.length;
+        // for (Square square:validSquares) {
+        //     if (square!=null) {
+        //         generatedNodes++;
+        //         GameState gs = state.applyMove(square);
+                
+        //         double a = model.getIntercept(totalPieces), b = model.getCoeff(totalPieces);
+        //         int bound = (int) ((-1 * Percentile) * sigma + alpha - b / a);
+        //         max = Math.max(max, minValue(depth+1, gs, alpha, beta));
+        //         if (minValue(depth, state, bound, bound + 1) >= bound) return beta;
+        //         // Must be defined for PB Cut
+        //         alpha = Math.max(alpha, max);
+        //     }
+        // }
         for (Square square:validSquares) {
             if (square!=null) {
                 generatedNodes++;
                 GameState gs = state.applyMove(square);
-
-                int bound = (int) (Percentile * sigma + beta / alpha);
-                max = Math.max(max, minValue(depth+1, searchLimit, gs, alpha, beta));
-                if (minValue(depth, searchLimit, state, bound, bound + 1) >= bound) return beta;
-                // Must be defined for PB Cut
-                // Must be changed for PB Cut
+                max = Math.max(max, minValue(depth+1, gs, alpha, beta));
+                if (max>=beta) return max;
                 alpha = Math.max(alpha, max);
             }
         }
