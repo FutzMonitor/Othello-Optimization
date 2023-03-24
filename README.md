@@ -21,7 +21,7 @@ For the final project, this assignment seeks to expand on these implementations 
 * 🖊️ Markdown
 * 🐙 Github
 * 💻 Eclipse
-* 🖥️ Java 
+* 🖥️ Java, Bash Script
 
 <!-- GETTING STARTED
 ## Getting Started
